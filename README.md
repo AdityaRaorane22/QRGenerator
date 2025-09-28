@@ -1,5 +1,6 @@
 # Random QR Generator 🎨  
 
+https://diplomatic-salmon-nosefjlnr7.edgeone.app/
 A simple, stylish, single-page QR code generator built with HTML, CSS, and JavaScript.  
 Generate QR codes for text, URLs, or vCards. Customize colors, size, and download as PNG.
 
