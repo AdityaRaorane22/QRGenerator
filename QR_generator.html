@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Random QR Generator — Simple & Stylish</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1724; /* dark navy */
+      --card:#0b1220;
+      --accent:#7c3aed;
+      --muted:#94a3b8;
+      --glass: rgba(255,255,255,0.04);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,Arial,sans-serif;
+      background: linear-gradient(180deg,#071023 0%, #061226 60%);
+      color:#e6eef8;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:40px;
+    }
+    .wrap{
+      width:100%;
+      max-width:1100px;
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      gap:28px;
+      align-items:start;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px;
+      padding:22px;
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    h1{margin:0 0 8px 0;font-size:20px}
+    p.lead{margin:0 0 18px 0;color:var(--muted);font-size:14px}
+
+    form .row{display:flex;gap:10px;margin-bottom:12px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type=text], textarea, select, .color-input, input[type=number]{
+      width:100%;
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.03);
+      padding:10px 12px;border-radius:8px;color:inherit;font-size:14px;outline:none
+    }
+    textarea{min-height:84px;resize:vertical}
+    .controls{margin-top:10px;display:flex;gap:8px}
+    button{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .preview{
+      display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px;gap:12px
+    }
+    .qr-box{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;display:flex;align-items:center;justify-content:center;min-height:320px;width:100%}
+    canvas, img.qr-img{max-width:100%;height:auto}
+    .meta{width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+    .small{font-size:13px;color:var(--muted)}
+
+    footer{grid-column:1/-1;margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
+
+    /* Responsive */
+    @media (max-width:980px){
+      .wrap{grid-template-columns:1fr;}
+      .preview{order:-1}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Random QR Generator</h1>
+      <p class="lead">Generate QR codes for URLs, text, contact info, or anything. Choose colors, size, and download the PNG. Quick, simple, and stylish.</p>
+
+      <form id="qrForm" onsubmit="return false;">
+        <label for="type">Content Type</label>
+        <select id="type">
+          <option value="text">Plain Text</option>
+          <option value="url">URL</option>
+          <option value="vcard">vCard (Contact)</option>
+        </select>
+
+        <div id="textGroup">
+          <label for="content">Content</label>
+          <textarea id="content" placeholder="Enter text or URL. For multiple lines use vCard type.">https://github.com/</textarea>
+        </div>
+
+        <div id="vcardGroup" style="display:none">
+          <label>Contact Details (vCard)</label>
+          <input id="vc_name" type="text" placeholder="Full name (e.g., Aditya Raorane)" />
+          <div class="row">
+            <input id="vc_phone" type="text" placeholder="Phone" />
+            <input id="vc_email" type="text" placeholder="Email" />
+          </div>
+          <input id="vc_org" type="text" placeholder="Organization" />
+          <input id="vc_url" type="text" placeholder="Website (optional)" />
+        </div>
+
+        <div class="row">
+          <div style="flex:1">
+            <label for="size">Size (px)</label>
+            <input id="size" type="number" min="128" max="1200" value="320" />
+          </div>
+          <div style="width:120px">
+            <label for="ec">Error Correction</label>
+            <select id="ec">
+              <option value="L">L - Low</option>
+              <option value="M" selected>M - Medium</option>
+              <option value="Q">Q - Quartile</option>
+              <option value="H">H - High</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="flex:1">
+            <label for="fg">Foreground (QR)</label>
+            <input id="fg" class="color-input" type="color" value="#0f1724" />
+          </div>
+          <div style="width:140px">
+            <label for="bg">Background</label>
+            <input id="bg" class="color-input" type="color" value="#ffffff" />
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="genBtn" type="button">Generate QR</button>
+          <button id="downloadBtn" class="ghost" type="button">Download PNG</button>
+          <button id="copyBtn" class="ghost" type="button">Copy Content</button>
+        </div>
+      </form>
+
+      <div style="margin-top:16px;border-top:1px dashed rgba(255,255,255,0.03);padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:600">Project</div>
+          <div class="small">Simple QR generator — Experiment 6</div>
+        </div>
+        <div style="text-align:right">
+          <div class="small">Made by: <strong>Aditya Raorane</strong></div>
+          <div class="small">Email: aditya@example.com</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card preview">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>Preview</strong>
+          <div class="small">Live QR and metadata</div>
+        </div>
+        <div class="small">PNG · Transparent bg supported</div>
+      </div>
+
+      <div class="qr-box" id="qrBox">
+        <canvas id="qrCanvas"></canvas>
+      </div>
+
+      <div class="meta">
+        <div class="small">Content: <span id="metaContent">https://github.com/</span></div>
+        <div class="small">Size: <span id="metaSize">320</span>px</div>
+      </div>
+
+      <div style="width:100%;display:flex;justify-content:center;gap:10px;margin-top:8px">
+        <button id="randomBtn" class="ghost">Random Text</button>
+        <button id="clearBtn" class="ghost">Clear</button>
+      </div>
+
+      <div style="width:100%;margin-top:12px;text-align:center;color:var(--muted);font-size:13px">
+        Contact / Help: <strong>adityanraorane@gmail.com</strong> • Visit GitHub to view source
+      </div>
+    </div>
+
+    <footer class="card">This is for learning purposes — feel free to fork and extend. License: MIT</footer>
+  </div>
+
+  <!-- QR library (small & reliable) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script>
+    // Simple DOM refs
+    const typeEl = document.getElementById('type');
+    const contentEl = document.getElementById('content');
+    const vcardGroup = document.getElementById('vcardGroup');
+    const textGroup = document.getElementById('textGroup');
+    const genBtn = document.getElementById('genBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const randomBtn = document.getElementById('randomBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const fg = document.getElementById('fg');
+    const bg = document.getElementById('bg');
+    const sizeEl = document.getElementById('size');
+    const ecEl = document.getElementById('ec');
+    const metaContent = document.getElementById('metaContent');
+    const metaSize = document.getElementById('metaSize');
+    const canvas = document.getElementById('qrCanvas');
+
+    // vCard fields
+    const vc_name = document.getElementById('vc_name');
+    const vc_phone = document.getElementById('vc_phone');
+    const vc_email = document.getElementById('vc_email');
+    const vc_org = document.getElementById('vc_org');
+    const vc_url = document.getElementById('vc_url');
+
+    // Toggle input groups based on type
+    typeEl.addEventListener('change', ()=>{
+      if(typeEl.value==='vcard'){
+        vcardGroup.style.display='block';
+        textGroup.style.display='none';
+      } else {
+        vcardGroup.style.display='none';
+        textGroup.style.display='block';
+      }
+    });
+
+    function buildVCard(){
+      const name = vc_name.value.trim();
+      const phone = vc_phone.value.trim();
+      const email = vc_email.value.trim();
+      const org = vc_org.value.trim();
+      const url = vc_url.value.trim();
+      let vcard = 'BEGIN:VCARD\nVERSION:3.0\n';
+      if(name) vcard += `FN:${name}\n`;
+      if(org) vcard += `ORG:${org}\n`;
+      if(phone) vcard += `TEL:${phone}\n`;
+      if(email) vcard += `EMAIL:${email}\n`;
+      if(url) vcard += `URL:${url}\n`;
+      vcard += 'END:VCARD';
+      return vcard;
+    }
+
+    async function generate(){
+      let value = contentEl.value || '';
+      if(typeEl.value==='vcard'){
+        value = buildVCard();
+      }
+      if(!value || !value.trim()){
+        alert('Please enter some content to encode.');
+        return;
+      }
+      const size = parseInt(sizeEl.value) || 320;
+      metaContent.textContent = value.length>40? value.slice(0,40)+'...': value;
+      metaSize.textContent = size;
+
+      // Options for QR
+      const opts = {
+        errorCorrectionLevel: ecEl.value || 'M',
+        width: size,
+        margin: 2,
+        color: {
+          dark: fg.value || '#000000',
+          light: bg.value || '#ffffff'
+        }
+      };
+
+      try{
+        // Use QRCode library to draw on canvas
+        await QRCode.toCanvas(canvas, value, opts);
+      }catch(err){
+        console.error(err);
+        alert('Failed to generate QR. See console for details.');
+      }
+    }
+
+    genBtn.addEventListener('click', generate);
+
+    downloadBtn.addEventListener('click', ()=>{
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'qr.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    copyBtn.addEventListener('click', async ()=>{
+      const text = (typeEl.value==='vcard')? buildVCard() : contentEl.value;
+      try{
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(()=> copyBtn.textContent='Copy Content',1200);
+      }catch(e){
+        alert('Copy failed. Your browser may block clipboard access.');
+      }
+    });
+
+    randomBtn.addEventListener('click', ()=>{
+      // Generate a random short URL-like string for fun
+      const rand = Math.random().toString(36).slice(2,10);
+      contentEl.value = `https://example.com/${rand}`;
+      generate();
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      contentEl.value=''; vc_name.value=''; vc_phone.value=''; vc_email.value=''; vc_org.value=''; vc_url.value='';
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      metaContent.textContent='—';
+    });
+
+    // Generate default on load
+    window.addEventListener('load', ()=>{
+      generate();
+    });
+  </script>
+</body>
+</html>

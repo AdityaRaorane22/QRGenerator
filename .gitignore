@@ -1,0 +1,15 @@
+# Logs
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Build or cache files
+dist/
+build/
+*.tmp
